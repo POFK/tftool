@@ -31,7 +31,12 @@ class Train(Toolkit):
                 tf.summary.histogram(var.op.name + '/gradients',
                                      grad,
                                      collections=['train'])
-        train_op = opt.apply_gradients(gvs, global_step=global_step)
+        if self.FLAGS.Is_BN:
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                train_op = opt.apply_gradients(gvs, global_step=global_step)
+        else:
+            train_op = opt.apply_gradients(gvs, global_step=global_step)
         return train_op
 
     @add_name_scope('train')

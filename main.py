@@ -26,11 +26,12 @@ class Main(Train, Model, InputPipeline):
         self.save_per_steps = 1000
         self.print_log = True
         self.valid_size = 1024
+        self.config = config
         #----------------------------------------
 
-    def loaddata(self, repeat=1, shuffle=False):
-        filenames = tf.placeholder(tf.string, shape=[None], name='filenames')
-        features, labels = self.input_fn(filenames, 
+    def loaddata(self, repeat=1, shuffle=True):
+        self.filenames = tf.placeholder(tf.string, shape=[None], name='filenames')
+        features, labels = self.input_fn(self.filenames, 
                                          repeat=repeat, 
                                          shuffle=shuffle)
         return features, labels
@@ -40,9 +41,8 @@ class Main(Train, Model, InputPipeline):
         net = self.Network(self, *args, **kwargs)
         return net
 
-    def eval(self, path):
+    def eval(self, data):
         BS = self.FLAGS.batch_size
-        data = np.load(path)
         flux = data['flux']
         label = data['label'].astype(np.int32)
         print flux.dtype, flux.shape
@@ -60,7 +60,7 @@ class Main(Train, Model, InputPipeline):
         prob = tf.get_collection('prob')[0]
         LOSS = []
         PROB = []
-        with tf.Session(config=config) as sess:
+        with tf.Session(config=self.config) as sess:
             self.Saver = tf.train.Saver(max_to_keep=1)
             self.init_model(sess)
             coord = tf.train.Coordinator()
@@ -81,16 +81,18 @@ class Main(Train, Model, InputPipeline):
         """it is an example, should rewriten in main function"""
         summary_train_op = tf.summary.merge_all('train')
         summary_valid_op = tf.summary.merge_all('validation')
-        filenames = tf.contrib.framework.get_placeholders(
-            tf.get_default_graph())[0]
-        iterator_handle = tf.get_collection('iterator')[0].initializer
-        with tf.Session(config=config) as sess:
+        filenames = self.filenames
+    #   iterator_handle = tf.get_collection('iterator')[0].initializer
+        iterator_handle = self.iterator.initializer
+        with tf.Session(config=self.config) as sess:
             self.Saver = tf.train.Saver(max_to_keep=10)
             local_step = 0
             global_step = tf.get_collection('global_step')[0]
             self.init_model(sess)
-            writer = tf.summary.FileWriter(
+            writer_train = tf.summary.FileWriter(
                 os.path.join(self.FLAGS.log_dir, "train"), sess.graph)
+            writer_valid = tf.summary.FileWriter(
+                os.path.join(self.FLAGS.log_dir, "valid"), sess.graph)
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=sess, coord=coord)
             #------------------------------------------------------------
@@ -101,21 +103,25 @@ class Main(Train, Model, InputPipeline):
             epoch = 1
             while not coord.should_stop():
                 try:
-                    _, step = sess.run([train_op, global_step])
+                    _, step = sess.run([train_op, global_step], 
+                                       feed_dict={self.Is_training: True})
                 except tf.errors.OutOfRangeError:
                     sess.run(iterator_handle, 
                              feed_dict={filenames: self.valid_filenames})
                     valid_losses = []
                     loop_num = self.valid_size//self.FLAGS.batch_size
                     for i in xrange(loop_num):
-                        summary_valid, l_valid = sess.run([summary_valid_op, loss])
+                        summary_valid, l_valid = sess.run(
+                            [summary_valid_op, loss],
+                            feed_dict={self.Is_training: False})
+                        if i == 0:
+                            writer_valid.add_summary(summary_valid, step)
                         valid_losses.append(l_valid)
-                    valid_loss = np.mean(valid_losses) / loop_num
+                    valid_loss = np.mean(valid_losses)
                     print "epoch %d: %f"%(epoch, valid_loss)
                     sess.run(iterator_handle, 
                              feed_dict={filenames: self.train_filenames})
                     epoch += 1
-                    writer.add_summary(summary_valid, step)
                     self.Saver.save(sess, os.path.join(
                         self.FLAGS.model_dir, 
                         self.FLAGS.model_basename+'_epoch'),
@@ -131,12 +137,11 @@ class Main(Train, Model, InputPipeline):
 
                 if local_step % self.update_log_step == 0:
                     summary_train, loss_train = sess.run(
-                        [summary_train_op, loss])
+                        [summary_train_op, loss], feed_dict={self.Is_training: False})
                     if self.print_log:
                         print " training step %d done (global step: %d):" \
                               % (local_step, step), loss_train
-                #             % (local_step, step), loss_train, loss_valid
-                    writer.add_summary(summary_train, step)
+                    writer_train.add_summary(summary_train, step)
             #------------------------------------------------------------
                 local_step += 1
                 if local_step == 1:
@@ -148,14 +153,16 @@ class Main(Train, Model, InputPipeline):
             coord.request_stop()
             coord.join(threads)
             pbar.close()
-            writer.close()
+            writer_train.close()
+            writer_valid.close()
 
     def __call__(self):
         """an example for constructing network model"""
         self.train_filenames = ["/data/dell5/userdir/maotx/DSC/data/training.tfrecords"]
         self.valid_filenames = ["/data/dell5/userdir/maotx/DSC/data/valid.tfrecords"]
+        self.Is_training = tf.placeholder(tf.bool,shape=[],name='is_train')
         x, y_ = self.loaddata()
-        net = self.inference(x, is_training=True)
+        net = self.inference(x, is_training=self.Is_training)
         loss = self.Loss_fn(self, net=net, y_=y_)
         train_op = self.optimizer(loss, gclip=None)
         self.train(loss, train_op)

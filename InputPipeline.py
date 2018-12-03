@@ -39,13 +39,13 @@ class InputPipeline(Toolkit):
         """
         dataset = tf.data.TFRecordDataset(filenames)
         if shuffle:
-            dataset = dataset.shuffle(buffer_size=self.FLAGS.batch_size*4)
+            dataset = dataset.shuffle(buffer_size=self.FLAGS.batch_size*10)
         dataset = dataset.map(self.parse_fn)
         dataset = dataset.repeat(repeat)
         dataset = dataset.batch(batch_size=self.FLAGS.batch_size)
-        iterator = dataset.make_initializable_iterator()
-        tf.add_to_collection('iterator',iterator)
-        next_element = iterator.get_next()
+        self.iterator = dataset.make_initializable_iterator()
+#       tf.add_to_collection('iterator',iterator)
+        next_element = self.iterator.get_next()
         return next_element
 
     def __call__(self):
