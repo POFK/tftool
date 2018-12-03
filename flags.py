@@ -62,11 +62,12 @@ parser.add_argument(
     help="learning rate")
 
 parser.add_argument(
-    "--l2w",
+    "--weight_decay",
     type=float,
-    default=1e-4,
+    default=0.,
     help="L2 regularization weight decay.")
 
+add_boolean_argument(parser, 'Is_BN', default=False)
 #----------------------------------------
 FLAGS = parser.parse_args()
 if __name__ == '__main__':
