@@ -85,7 +85,7 @@ class Main(Train, Model, InputPipeline):
     #   iterator_handle = tf.get_collection('iterator')[0].initializer
         iterator_handle = self.iterator.initializer
         with tf.Session(config=self.config) as sess:
-            self.Saver = tf.train.Saver(max_to_keep=10)
+            self.Saver = tf.train.Saver(max_to_keep=20)
             local_step = 0
             global_step = tf.get_collection('global_step')[0]
             self.init_model(sess)
@@ -112,7 +112,7 @@ class Main(Train, Model, InputPipeline):
                     loop_num = self.valid_size//self.FLAGS.batch_size
                     for i in xrange(loop_num):
                         summary_valid, l_valid = sess.run(
-                            [summary_valid_op, loss],
+                            [summary_valid_op, tf.get_collection('MES_l')[0]],
                             feed_dict={self.Is_training: False})
                         if i == 0:
                             writer_valid.add_summary(summary_valid, step)
@@ -122,10 +122,10 @@ class Main(Train, Model, InputPipeline):
                     sess.run(iterator_handle, 
                              feed_dict={filenames: self.train_filenames})
                     epoch += 1
-                    self.Saver.save(sess, os.path.join(
-                        self.FLAGS.model_dir, 
-                        self.FLAGS.model_basename+'_epoch'),
-                        global_step=epoch)
+                #   self.Saver.save(sess, os.path.join(
+                #       self.FLAGS.model_dir, 
+                #       self.FLAGS.model_basename+'_epoch'),
+                #       global_step=epoch)
                     continue
                 if local_step % (self.FLAGS.train_steps //
                                  self.update_log_step) == 0:

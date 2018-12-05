@@ -20,19 +20,19 @@ def Network(self, x, is_training=tf.bool):
     print_fn('=' * 10 + 'CNN' + '=' * 10)
     x = tf.reshape(x, [-1, 4000, 1], namebase+'reshape')
     with slim.arg_scope(arg_scope(weight_decay=self.FLAGS.weight_decay)):
-        net = layer(x, 8*frac, 7, name=namebase+'conv%d'%num)
+        net = layer(x, 8*frac, 3, name=namebase+'conv%d'%num)
         net = tf.layers.dropout(net, rate=0.1, training=is_training,
                                 name=namebase+'conv%d/dropout'%num)
         net = tf.layers.max_pooling1d(net, 3, 2,name=namebase+'maxpool%d'%num)
         num += 1
 
-        net = layer(net, 16*frac, 7, name=namebase+'conv%d'%num)
+        net = layer(net, 16*frac, 3, name=namebase+'conv%d'%num)
         net = tf.layers.dropout(net, rate=0.1, training=is_training,
                                 name=namebase+'conv%d/dropout'%num)
         net = tf.layers.max_pooling1d(net, 3, 2,name=namebase+'maxpool%d'%num)
         num += 1
 
-        net = layer(net, 32*frac, 7, name=namebase+'conv%d'%num)
+        net = layer(net, 32*frac, 3, name=namebase+'conv%d'%num)
 #       net = tf.layers.max_pooling1d(net, 3, 2,name=namebase+'maxpool%d'%num)
         net = tf.layers.dropout(net, rate=0.1, training=is_training,
                                 name=namebase+'conv%d/dropout'%num)
@@ -43,9 +43,10 @@ def Network(self, x, is_training=tf.bool):
 
         net = tf.layers.dense(
             net, 
-            128, 
+            32, 
             activation = tf.nn.relu,
             kernel_initializer = tf.contrib.layers.xavier_initializer(),
+            kernel_regularizer=kernel_regularizer,
             name = namebase+'dense%d'%num,
             )
         net = tf.layers.dropout(net, rate=0.5, training=is_training,
