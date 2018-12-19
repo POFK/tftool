@@ -20,14 +20,14 @@ class InputPipeline(Toolkit):
         "Parse TFExample records and perform simple data augmentation."
         example_fmt = {
             "index": tf.FixedLenFeature([], tf.int64),
-            "feature_raw": tf.FixedLenFeature([Len], tf.float32),
+            "feature_raw": tf.FixedLenFeature([self.data_shape], tf.float32),
             "label_raw": tf.FixedLenFeature([], tf.float32)
         }
         parsed = tf.parse_single_example(example, example_fmt)
         feature = parsed['feature_raw']
         label = parsed['label_raw']
         #-------------preprocessing--------------
-        feature, label = self.preprocessing(feature, label, Len=Len)
+        feature, label = self.preprocessing(feature, label, Len=self.data_shape)
         #-------------preprocessing--------------
         return feature, label
     

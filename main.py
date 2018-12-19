@@ -53,7 +53,7 @@ class Main(Train, Model, InputPipeline):
             loop_num = label.shape[0]//BS + 1
         print_fn("loop number: %d"%loop_num)
         #------------------------------------------------------------
-        x = tf.placeholder(tf.float32, shape=[None, 4000])
+        x = tf.placeholder(tf.float32, shape=[None, self.data_shape])
         y_ = tf.placeholder(tf.int32, shape=[None])
         net = self.inference(x, is_training=False)
         loss = self.Loss_fn(self, net=net, y_=y_)
