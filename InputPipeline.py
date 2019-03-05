@@ -8,7 +8,7 @@ class InputPipeline(Toolkit):
         super(InputPipeline, self).__init__(*args, **kwargs)
 
     @add_name_scope('InputPipeline/preprocessing')
-    def preprocessing(self, feature, label, Len=4000):
+    def preprocessing(self, feature, label, Len=3000):
         feature = tf.reshape(feature, [Len])
         feature = feature - tf.reduce_mean(feature) # zero centering
         label = tf.cast(label, dtype=tf.int32)
@@ -16,7 +16,7 @@ class InputPipeline(Toolkit):
         return feature, label
 
     @add_name_scope('InputPipeline/parse_fn')
-    def parse_fn(self, example, Len=4000):
+    def parse_fn(self, example, Len=3000):
         "Parse TFExample records and perform simple data augmentation."
         example_fmt = {
             "index": tf.FixedLenFeature([], tf.int64),
