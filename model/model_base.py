@@ -5,7 +5,7 @@ import tensorflow as tf
 #============================ setting ===========================================
 tf.logging.set_verbosity(tf.logging.INFO)
 #layers = tf.layers
-layer = tf.contrib.framework.add_arg_scope(tf.layers.conv1d)
+layer = tf.contrib.framework.add_arg_scope(tf.layers.conv2d)
 slim = tf.contrib.slim
 print_fn = tf.logging.info  # print
 #================================================================================
@@ -30,7 +30,7 @@ def arg_scope(weight_decay=1e-4):
     kernel_regularizer = tf.contrib.layers.l2_regularizer(scale=weight_decay)
     # l2_loss = tf.losses.get_regularization_loss()
     with slim.arg_scope(
-        [tf.layers.conv1d],
+        [tf.layers.conv2d],
         strides=1,
         padding='valid',
         activation=tf.nn.relu,

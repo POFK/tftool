@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 import tensorflow as tf
+import numpy as np
 from Utils import Toolkit, add_name_scope
 
 class InputPipeline(Toolkit):
@@ -9,18 +10,20 @@ class InputPipeline(Toolkit):
 
     @add_name_scope('InputPipeline/preprocessing')
     def preprocessing(self, feature, label, Len=4000):
-        feature = tf.reshape(feature, [Len])
-        feature = feature - tf.reduce_mean(feature) # zero centering
+        feature = tf.reshape(feature, Len)
+    #   feature = feature - tf.reduce_mean(feature) # zero centering
+        feature = tf.clip_by_value(feature, -100., 100.) # std is 1. here.
         label = tf.cast(label, dtype=tf.int32)
         label = tf.reshape(label, [])
+        print feature, label
         return feature, label
 
     @add_name_scope('InputPipeline/parse_fn')
     def parse_fn(self, example, Len=4000):
         "Parse TFExample records and perform simple data augmentation."
         example_fmt = {
-            "index": tf.FixedLenFeature([], tf.int64),
-            "feature_raw": tf.FixedLenFeature([self.data_shape], tf.float32),
+        #   "index": tf.FixedLenFeature([], tf.int64),
+            "feature_raw": tf.FixedLenFeature([np.prod(self.data_shape)], tf.float32),
             "label_raw": tf.FixedLenFeature([], tf.float32)
         }
         parsed = tf.parse_single_example(example, example_fmt)
